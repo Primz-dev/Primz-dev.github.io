@@ -191,24 +191,62 @@
     list.append(li);
   }
 
-  /* Inclinazione e riflesso della carta seguendo il dito o il mouse */
+  /* Riflesso e inclinazione: giroscopio su iPad/telefono, mouse come ripiego */
   const card = document.getElementById("card");
+  let gyro = false;
+
+  function aim(x, y) { // x, y tra 0 e 1
+    card.style.setProperty("--ry", ((x - .5) * 14) + "deg");
+    card.style.setProperty("--rx", ((.5 - y) * 14) + "deg");
+    card.style.setProperty("--mx", (x * 100) + "%");
+    card.style.setProperty("--my", (y * 100) + "%");
+  }
+  function reset() {
+    card.style.setProperty("--rx", "0deg");
+    card.style.setProperty("--ry", "0deg");
+    card.style.setProperty("--mx", "30%");
+    card.style.setProperty("--my", "20%");
+  }
+
   if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    // Mouse o dito (ignorati quando il giroscopio è attivo)
     card.addEventListener("pointermove", e => {
+      if (gyro) return;
       const r = card.getBoundingClientRect();
-      const x = (e.clientX - r.left) / r.width;
-      const y = (e.clientY - r.top) / r.height;
-      card.style.setProperty("--ry", ((x - .5) * 14) + "deg");
-      card.style.setProperty("--rx", ((.5 - y) * 14) + "deg");
-      card.style.setProperty("--mx", (x * 100) + "%");
-      card.style.setProperty("--my", (y * 100) + "%");
+      aim((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
     });
-    card.addEventListener("pointerleave", () => {
-      card.style.setProperty("--rx", "0deg");
-      card.style.setProperty("--ry", "0deg");
-      card.style.setProperty("--mx", "30%");
-      card.style.setProperty("--my", "20%");
-    });
+    card.addEventListener("pointerleave", () => { if (!gyro) reset(); });
+
+    // Giroscopio: conta come ti muovi rispetto a come tieni l’iPad, e si ricentra piano piano
+    let base = null;
+    const clamp = v => Math.max(0, Math.min(1, v));
+    function onTilt(e) {
+      if (e.gamma == null || e.beta == null) return;
+      gyro = true;
+      if (!base) base = { g: e.gamma, b: e.beta };
+      let dg = e.gamma - base.g, db = e.beta - base.b;
+      base.g += dg * .02; base.b += db * .02;
+
+      const raw = (screen.orientation ? screen.orientation.angle : window.orientation) || 0;
+      const ang = (raw + 360) % 360;
+      let dx = dg, dy = db;
+      if (ang === 90) { dx = db; dy = -dg; }
+      else if (ang === 270) { dx = -db; dy = dg; }
+      else if (ang === 180) { dx = -dg; dy = -db; }
+      aim(clamp(.5 + dx / 30), clamp(.5 + dy / 30));
+    }
+    const startTilt = () => window.addEventListener("deviceorientation", onTilt);
+
+    const D = window.DeviceOrientationEvent;
+    if (D && typeof D.requestPermission === "function") {
+      // iPad/iPhone: serve un tocco sulla carta per chiedere il permesso
+      card.addEventListener("click", function ask() {
+        card.removeEventListener("click", ask);
+        D.requestPermission().then(r => { if (r === "granted") startTilt(); }).catch(() => {});
+      });
+    } else if (D) {
+      startTilt();
+    }
   }
 </script>
 </body>
