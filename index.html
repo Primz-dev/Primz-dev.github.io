@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1d1233">
+<meta name="color-scheme" content="dark">
 <title>La mia carta d’oro</title>
 <link rel="apple-touch-icon" href="icon.png">
 <meta name="apple-mobile-web-app-title" content="Carta">
@@ -22,11 +24,12 @@
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
+  html { background: var(--bg); }
   body {
     min-height: 100vh;
     font-family: "Fredoka", system-ui, sans-serif;
     color: var(--ink);
-    background: radial-gradient(120% 80% at 50% -10%, var(--bg-2), var(--bg) 60%) fixed;
+    background: radial-gradient(120% 80% at 50% -10%, var(--bg-2), var(--bg) 60%);
     padding: 32px 20px 64px;
   }
   main { max-width: 440px; margin: 0 auto; }
